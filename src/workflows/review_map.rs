@@ -277,7 +277,9 @@ fn static_stage_guides(project: ProjectId, stage_name: &str) -> Vec<String> {
     if stage_name == linux_patch_review::COMBINED_ANALYSIS_STAGE_NAME {
         let all_defs = match project {
             ProjectId::Linux => linux_patch_review::ANALYSIS_STAGES,
-            ProjectId::Sashiko => sashiko_patch_review::ANALYSIS_STAGES,
+            ProjectId::Sashiko | ProjectId::Yoctoproject | ProjectId::Bitbake => {
+                sashiko_patch_review::ANALYSIS_STAGES
+            }
             ProjectId::Gcc => gcc_patch_review::ANALYSIS_STAGES,
             ProjectId::Qemu => qemu_patch_review::ANALYSIS_STAGES,
             ProjectId::Zephyr => zephyr_patch_review::ANALYSIS_STAGES,
@@ -294,7 +296,9 @@ fn static_stage_guides(project: ProjectId, stage_name: &str) -> Vec<String> {
     }
     let analysis_def = match project {
         ProjectId::Linux => linux_patch_review::analysis_stage_by_name(stage_name),
-        ProjectId::Sashiko => sashiko_patch_review::analysis_stage_by_name(stage_name),
+        ProjectId::Sashiko | ProjectId::Yoctoproject | ProjectId::Bitbake => {
+            sashiko_patch_review::analysis_stage_by_name(stage_name)
+        }
         ProjectId::Gcc => gcc_patch_review::analysis_stage_by_name(stage_name),
         ProjectId::Qemu => qemu_patch_review::analysis_stage_by_name(stage_name),
         ProjectId::Zephyr => zephyr_patch_review::analysis_stage_by_name(stage_name),
@@ -321,7 +325,9 @@ fn static_stage_guides(project: ProjectId, stage_name: &str) -> Vec<String> {
         }
         "report" => match project {
             ProjectId::Linux | ProjectId::Gcc => push_unique(&mut guides, "inline-template.md"),
-            ProjectId::Sashiko => push_unique(&mut guides, "github-summary-template.md"),
+            ProjectId::Sashiko | ProjectId::Yoctoproject | ProjectId::Bitbake => {
+                push_unique(&mut guides, "github-summary-template.md")
+            }
             ProjectId::Qemu | ProjectId::Zephyr => push_unique(&mut guides, "report-template.md"),
         },
         _ => {}
@@ -377,7 +383,7 @@ fn build_prompts_manifest(
             "false-positive-guide.md".to_string(),
             "severity.md".to_string(),
         ],
-        ProjectId::Sashiko | ProjectId::Gcc => vec![
+        ProjectId::Sashiko | ProjectId::Yoctoproject | ProjectId::Bitbake | ProjectId::Gcc => vec![
             "review-core.md".to_string(),
             "false-positive-guide.md".to_string(),
             "severity.md".to_string(),

@@ -94,7 +94,9 @@ pub fn zephyr_severity_guide() -> &'static str {
 pub fn severity_guide(project: ProjectId) -> &'static str {
     match project {
         ProjectId::Linux => kernel_severity_guide(),
-        ProjectId::Sashiko => sashiko_severity_guide(),
+        ProjectId::Sashiko | ProjectId::Yoctoproject | ProjectId::Bitbake => {
+            sashiko_severity_guide()
+        }
         ProjectId::Gcc => gcc_severity_guide(),
         ProjectId::Qemu => qemu_severity_guide(),
         ProjectId::Zephyr => zephyr_severity_guide(),

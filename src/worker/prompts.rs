@@ -429,11 +429,13 @@ impl Worker {
                     &target_commit_sha,
                 )
             }
-            ProjectId::Sashiko => build_sashiko_series_context(
-                self.series_range.as_deref(),
-                &patchset,
-                &target_commit_sha,
-            ),
+            ProjectId::Sashiko | ProjectId::Yoctoproject | ProjectId::Bitbake => {
+                build_sashiko_series_context(
+                    self.series_range.as_deref(),
+                    &patchset,
+                    &target_commit_sha,
+                )
+            }
         };
 
         let code_notes = if self.use_code_notes {
@@ -521,7 +523,9 @@ impl Worker {
         if self.global_history.is_empty() {
             let sys_template = match self.project {
                 ProjectId::Linux => linux_system_prompt(true),
-                ProjectId::Sashiko => sashiko_system_prompt(true),
+                ProjectId::Sashiko | ProjectId::Yoctoproject | ProjectId::Bitbake => {
+                    sashiko_system_prompt(true)
+                }
                 ProjectId::Gcc => gcc_system_prompt(true),
                 ProjectId::Qemu => qemu_system_prompt(true),
                 ProjectId::Zephyr => zephyr_system_prompt(true),
@@ -543,11 +547,13 @@ impl Worker {
                 self.temperature,
                 self.effort,
             ),
-            ProjectId::Sashiko => build_sashiko_patch_review_workflow_with_effort(
-                self.max_interactions,
-                self.temperature,
-                self.effort,
-            ),
+            ProjectId::Sashiko | ProjectId::Yoctoproject | ProjectId::Bitbake => {
+                build_sashiko_patch_review_workflow_with_effort(
+                    self.max_interactions,
+                    self.temperature,
+                    self.effort,
+                )
+            }
             ProjectId::Gcc => build_gcc_patch_review_workflow_with_effort(
                 self.max_interactions,
                 self.temperature,

@@ -1763,7 +1763,7 @@ async fn run_daemon(
         (None, None)
     };
 
-    let bug_worker_handle = if settings.linux_bug.enabled {
+    let bug_worker_handle = if settings.linux_bug.enabled && project.has_bug_pipeline() {
         let provider =
             sashiko::ai::create_provider(&settings).expect("Provider setup failed for bug worker");
         let bug_worker = Arc::new(
@@ -1783,6 +1783,9 @@ async fn run_daemon(
                 worker.run().await;
             }
         }))
+    } else if settings.linux_bug.enabled {
+        info!("Bug worker disabled: project {project} has no bug pipeline.");
+        None
     } else {
         info!("Bug worker disabled via settings (linux_bug.enabled = false).");
         None

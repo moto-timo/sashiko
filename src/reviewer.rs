@@ -3526,6 +3526,12 @@ impl Reviewer {
                                             crate::project::ProjectId::Zephyr => {
                                                 "sashiko:zephyr_patch_review"
                                             }
+                                            crate::project::ProjectId::Yoctoproject => {
+                                                "sashiko:yoctoproject_patch_review"
+                                            }
+                                            crate::project::ProjectId::Bitbake => {
+                                                "sashiko:bitbake_patch_review"
+                                            }
                                         };
                                         let discovery_db = ctx.db.with_bug_actor(
                                             ctx.settings.project.attribution(),

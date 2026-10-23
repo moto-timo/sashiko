@@ -152,7 +152,9 @@ impl BugWorker {
         self.project = project;
         let bug_tool = match project {
             crate::project::ProjectId::Linux => "sashiko:linux_bug",
-            crate::project::ProjectId::Sashiko => "sashiko:sashiko_bug",
+            crate::project::ProjectId::Sashiko
+            | crate::project::ProjectId::Yoctoproject
+            | crate::project::ProjectId::Bitbake => "sashiko:sashiko_bug",
             crate::project::ProjectId::Gcc => "sashiko:gcc_bug",
             crate::project::ProjectId::Qemu => "sashiko:qemu_bug",
             crate::project::ProjectId::Zephyr => "sashiko:zephyr_bug",
@@ -590,7 +592,9 @@ impl BugWorker {
     fn security_eval_tool_name(project: crate::project::ProjectId) -> &'static str {
         match project {
             crate::project::ProjectId::Linux => "sashiko:linux_bug:security_eval",
-            crate::project::ProjectId::Sashiko => "sashiko:sashiko_bug:security_eval",
+            crate::project::ProjectId::Sashiko
+            | crate::project::ProjectId::Yoctoproject
+            | crate::project::ProjectId::Bitbake => "sashiko:sashiko_bug:security_eval",
             crate::project::ProjectId::Gcc => "sashiko:gcc_bug:security_eval",
             crate::project::ProjectId::Qemu => "sashiko:qemu_bug:security_eval",
             crate::project::ProjectId::Zephyr => "sashiko:zephyr_bug:security_eval",
@@ -1044,7 +1048,9 @@ impl BugWorker {
         );
         let bug_tool = match effective_project {
             crate::project::ProjectId::Linux => "sashiko:linux_bug",
-            crate::project::ProjectId::Sashiko => "sashiko:sashiko_bug",
+            crate::project::ProjectId::Sashiko
+            | crate::project::ProjectId::Yoctoproject
+            | crate::project::ProjectId::Bitbake => "sashiko:sashiko_bug",
             crate::project::ProjectId::Gcc => "sashiko:gcc_bug",
             crate::project::ProjectId::Qemu => "sashiko:qemu_bug",
             crate::project::ProjectId::Zephyr => "sashiko:zephyr_bug",

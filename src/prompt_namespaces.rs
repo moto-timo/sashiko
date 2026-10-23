@@ -31,4 +31,6 @@ pub const PROJECT_PROMPT_NAMESPACES: &[(&str, &str)] = &[
     ("gcc", "gcc"),
     ("qemu", "qemu"),
     ("zephyr", "zephyr"),
+    ("yoctoproject", "yoctoproject"),
+    ("bitbake", "bitbake"),
 ];

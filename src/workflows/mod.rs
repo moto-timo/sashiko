@@ -35,7 +35,9 @@ pub mod zephyr_patch_review;
 pub fn stage_short_label(project: ProjectId, stage: &str) -> Option<&'static str> {
     match project {
         ProjectId::Linux => linux_patch_review::stage_short_label(stage),
-        ProjectId::Sashiko => sashiko_patch_review::stage_short_label(stage),
+        ProjectId::Sashiko | ProjectId::Yoctoproject | ProjectId::Bitbake => {
+            sashiko_patch_review::stage_short_label(stage)
+        }
         ProjectId::Gcc => gcc_patch_review::stage_short_label(stage),
         ProjectId::Qemu => qemu_patch_review::stage_short_label(stage),
         ProjectId::Zephyr => zephyr_patch_review::stage_short_label(stage),
@@ -50,7 +52,7 @@ pub fn default_stage_count(project: ProjectId) -> usize {
             linux_patch_review::ANALYSIS_STAGES.len()
                 + linux_patch_review::CONSOLIDATION_STAGES.len()
         }
-        ProjectId::Sashiko => {
+        ProjectId::Sashiko | ProjectId::Yoctoproject | ProjectId::Bitbake => {
             sashiko_patch_review::ANALYSIS_STAGES.len()
                 + sashiko_patch_review::CONSOLIDATION_STAGES.len()
         }
@@ -104,7 +106,7 @@ pub fn planned_stages_from(project: ProjectId, stage_names: &[&'static str]) -> 
             }
             planned
         }
-        ProjectId::Sashiko => {
+        ProjectId::Sashiko | ProjectId::Yoctoproject | ProjectId::Bitbake => {
             let mut planned: Vec<String> = stage_names
                 .iter()
                 .filter(|n| {

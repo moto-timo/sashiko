@@ -33,6 +33,11 @@ use serde::{Deserialize, Serialize};
 ///
 /// Linux is the default so that an existing deployment, which names no project
 /// anywhere, keeps behaving exactly as it did.
+///
+/// Yocto Project (every OpenEmbedded and Yocto list except `bitbake-devel`)
+/// and BitBake (`bitbake-devel` only) review with the Sashiko workflow until
+/// their own lands; `designs/DESIGN_YOCTOPROJECT_PROJECT.md` lays out the
+/// steps.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, clap::ValueEnum)]
 #[serde(rename_all = "lowercase")]
 pub enum ProjectId {
@@ -42,6 +47,8 @@ pub enum ProjectId {
     Gcc,
     Qemu,
     Zephyr,
+    Yoctoproject,
+    Bitbake,
 }
 
 impl ProjectId {
@@ -54,6 +61,8 @@ impl ProjectId {
             ProjectId::Gcc => "gcc",
             ProjectId::Qemu => "qemu",
             ProjectId::Zephyr => "zephyr",
+            ProjectId::Yoctoproject => "yoctoproject",
+            ProjectId::Bitbake => "bitbake",
         }
     }
 
@@ -65,13 +74,19 @@ impl ProjectId {
             ProjectId::Gcc => "GCC",
             ProjectId::Qemu => "QEMU",
             ProjectId::Zephyr => "Zephyr",
+            ProjectId::Yoctoproject => "Yocto Project",
+            ProjectId::Bitbake => "BitBake",
         }
     }
 
     /// The upstream development branch, independent of a fork's URL.
     pub fn mainline_branch(self) -> &'static str {
         match self {
-            ProjectId::Linux | ProjectId::Gcc | ProjectId::Qemu => "master",
+            ProjectId::Linux
+            | ProjectId::Gcc
+            | ProjectId::Qemu
+            | ProjectId::Yoctoproject
+            | ProjectId::Bitbake => "master",
             ProjectId::Sashiko | ProjectId::Zephyr => "main",
         }
     }
@@ -93,6 +108,10 @@ impl ProjectId {
                     || url.contains("qemu/qemu")
             }
             ProjectId::Zephyr => url.contains("zephyrproject-rtos/zephyr"),
+            ProjectId::Yoctoproject => url.contains("openembedded-core"),
+            ProjectId::Bitbake => {
+                url.contains("openembedded.org/bitbake") || url.contains("openembedded/bitbake")
+            }
         }
     }
 
@@ -112,6 +131,8 @@ impl ProjectId {
             ProjectId::Gcc => "gcc",
             ProjectId::Qemu => "qemu",
             ProjectId::Zephyr => "zephyr",
+            ProjectId::Yoctoproject => "yoctoproject",
+            ProjectId::Bitbake => "bitbake",
         }
     }
 
@@ -122,7 +143,28 @@ impl ProjectId {
     pub fn uses_maintainers(self) -> bool {
         match self {
             ProjectId::Linux => true,
-            ProjectId::Sashiko | ProjectId::Gcc | ProjectId::Qemu | ProjectId::Zephyr => false,
+            ProjectId::Sashiko
+            | ProjectId::Gcc
+            | ProjectId::Qemu
+            | ProjectId::Zephyr
+            | ProjectId::Yoctoproject
+            | ProjectId::Bitbake => false,
+        }
+    }
+
+    /// Whether this project runs the standalone bug pipeline.
+    ///
+    /// Each project's bug pipeline has prompts of its own. Yocto Project and
+    /// BitBake have none yet, and would get bugs verified, titled and
+    /// attributed as if they were Sashiko's, so they get none until they do.
+    pub fn has_bug_pipeline(self) -> bool {
+        match self {
+            ProjectId::Linux
+            | ProjectId::Sashiko
+            | ProjectId::Gcc
+            | ProjectId::Qemu
+            | ProjectId::Zephyr => true,
+            ProjectId::Yoctoproject | ProjectId::Bitbake => false,
         }
     }
 
@@ -137,9 +179,12 @@ impl ProjectId {
             ProjectId::Linux => {
                 crate::authority::TrustedBots(&["lkp@intel.com", "*@syzkaller.appspotmail.com"])
             }
-            ProjectId::Sashiko | ProjectId::Gcc | ProjectId::Qemu | ProjectId::Zephyr => {
-                crate::authority::TrustedBots(&[])
-            }
+            ProjectId::Sashiko
+            | ProjectId::Gcc
+            | ProjectId::Qemu
+            | ProjectId::Zephyr
+            | ProjectId::Yoctoproject
+            | ProjectId::Bitbake => crate::authority::TrustedBots(&[]),
         }
     }
 
@@ -152,6 +197,8 @@ impl ProjectId {
             ProjectId::Gcc => "projects/gcc/mailing_lists.toml",
             ProjectId::Qemu => "projects/qemu/mailing_lists.toml",
             ProjectId::Zephyr => "projects/zephyr/mailing_lists.toml",
+            ProjectId::Yoctoproject => "projects/yoctoproject/mailing_lists.toml",
+            ProjectId::Bitbake => "projects/bitbake/mailing_lists.toml",
         }
     }
 
@@ -164,6 +211,8 @@ impl ProjectId {
             ProjectId::Gcc => "projects/gcc/bugs_access.toml",
             ProjectId::Qemu => "projects/qemu/bugs_access.toml",
             ProjectId::Zephyr => "projects/zephyr/bugs_access.toml",
+            ProjectId::Yoctoproject => "projects/yoctoproject/bugs_access.toml",
+            ProjectId::Bitbake => "projects/bitbake/bugs_access.toml",
         }
     }
 
@@ -193,6 +242,16 @@ impl ProjectId {
             },
             ProjectId::Zephyr => Upstream {
                 url: "https://github.com/zephyrproject-rtos/zephyr.git",
+                seed: Seed::None,
+            },
+            // The other layer trees are remotes of the same repository,
+            // added through git.custom_remotes.
+            ProjectId::Yoctoproject => Upstream {
+                url: "https://git.openembedded.org/openembedded-core",
+                seed: Seed::None,
+            },
+            ProjectId::Bitbake => Upstream {
+                url: "https://git.openembedded.org/bitbake",
                 seed: Seed::None,
             },
         }
@@ -241,6 +300,8 @@ impl FromStr for ProjectId {
             "gcc" => Ok(ProjectId::Gcc),
             "qemu" => Ok(ProjectId::Qemu),
             "zephyr" => Ok(ProjectId::Zephyr),
+            "yoctoproject" => Ok(ProjectId::Yoctoproject),
+            "bitbake" => Ok(ProjectId::Bitbake),
             _ => Err(UnknownProject(s.to_string())),
         }
     }
@@ -280,6 +341,8 @@ impl ProjectId {
         ProjectId::Gcc,
         ProjectId::Qemu,
         ProjectId::Zephyr,
+        ProjectId::Yoctoproject,
+        ProjectId::Bitbake,
     ];
 }
 
@@ -315,10 +378,12 @@ mod tests {
                 | ProjectId::Sashiko
                 | ProjectId::Gcc
                 | ProjectId::Qemu
-                | ProjectId::Zephyr => {}
+                | ProjectId::Zephyr
+                | ProjectId::Yoctoproject
+                | ProjectId::Bitbake => {}
             }
         }
-        assert_eq!(ProjectId::ALL.len(), 5);
+        assert_eq!(ProjectId::ALL.len(), 7);
     }
 
     #[test]
@@ -336,6 +401,8 @@ mod tests {
         assert_eq!(ProjectId::Gcc.display_name(), "GCC");
         assert_eq!(ProjectId::Qemu.display_name(), "QEMU");
         assert_eq!(ProjectId::Zephyr.display_name(), "Zephyr");
+        assert_eq!(ProjectId::Yoctoproject.display_name(), "Yocto Project");
+        assert_eq!(ProjectId::Bitbake.display_name(), "BitBake");
     }
 
     #[test]
@@ -395,6 +462,16 @@ mod tests {
         assert_eq!(ProjectId::Sashiko.prompt_dir(), "sashiko");
         assert_eq!(ProjectId::Qemu.prompt_dir(), "qemu");
         assert_eq!(ProjectId::Zephyr.prompt_dir(), "zephyr");
+        assert_eq!(ProjectId::Yoctoproject.prompt_dir(), "yoctoproject");
+        assert_eq!(ProjectId::Bitbake.prompt_dir(), "bitbake");
+    }
+
+    #[test]
+    fn test_yocto_project_and_bitbake_run_no_bug_pipeline() {
+        for project in ProjectId::ALL {
+            let expected = !matches!(project, ProjectId::Yoctoproject | ProjectId::Bitbake);
+            assert_eq!(project.has_bug_pipeline(), expected, "{project}");
+        }
     }
 
     #[test]
