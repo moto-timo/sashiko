@@ -1,0 +1,62 @@
+[
+  {
+    "Commit": "388cd4770e0494879d1f3ba1fe42f4e76350dd3c",
+    "Fixed-by": "03f76657aab3f8697db77f774c34040d879f6758",
+    "subsystem": "ptest-packagelists",
+    "problem_description": "PTESTS_PROBLEMS:append:libc-musl:qemuarm64 and PTESTS_PROBLEMS:append:libc-musl:qemux86-64 in meta/conf/distro/include/ptest-packagelists.inc assign values without a leading space. :append does not insert a separator, so the first appended recipe name is concatenated onto the last existing word of PTESTS_PROBLEMS."
+  },
+  {
+    "Commit": "5e97f3c1e2cf76f8b810da5a8c591eb6e22586f2",
+    "Fixed-by": "e10fa40acd41e4622e74b154b38a4aeb2182fe6e",
+    "subsystem": "u-boot",
+    "problem_description": "The backported 0001-scripts-dtc-drop-yaml-in-DT-validation.patch is added through SRC_URI_RISCV instead of SRC_URI, so only RISC-V U-Boot builds apply it. u-boot-tools and U-Boot for every other architecture never receive the fix the commit message describes."
+  },
+  {
+    "Commit": "c8aa0222ce2be647911114aaebcbb0d55d7caf87",
+    "Fixed-by": "a09260982be87018e542d98ef462a4f22b6ca42b",
+    "subsystem": "weston-init",
+    "problem_description": "weston-start tests x\"{$weston_modules}\" instead of x\"${weston_modules}\". The braces are outside the dollar sign, so the shell compares a literal string that is never equal to \"x\", and the modules argument check does not depend on whether any modules were collected."
+  },
+  {
+    "Commit": "c12e013453689697a8680f1c7de3e625a0ff28ec",
+    "Fixed-by": "1d5d22a38188f2c879e289a9732b620b0a6f7a6e",
+    "subsystem": "uboot-sign",
+    "problem_description": "uboot-sign.bbclass writes UBOOT_FIT_USER_SETTINGS into the ITS file with 'echo -e'. Task shell code runs under /bin/sh, and on hosts where that is dash, echo does not accept -e, so a literal \"-e\" is written into the generated ITS file. printf is the portable replacement."
+  },
+  {
+    "Commit": "7c99f90079e722764ebdc30e8d0e781454b3a51a",
+    "Fixed-by": "41a491a66109eb480bdb47f241664fbb268c0f90",
+    "subsystem": "lib/oe",
+    "problem_description": "The change makes multiprocess_launch() unpack each argument tuple into individual parameters, so runstrip() now takes its arguments separately instead of one tuple. The caller in meta/classes-recipe/kernel.bbclass still passes a single tuple to runstrip() and is not migrated, so kernel stripping breaks."
+  },
+  {
+    "Commit": "479d48503dd2c1aeb0d95bdc226284811b00f6f1",
+    "Fixed-by": "beb0a16ac408d741213b635ab6151f5a921bd129",
+    "subsystem": "icu",
+    "problem_description": "The upgrade to 78.1 changes the version format from '77-1' to '78.1', but the Python helpers that derive ICU_MAJOR_VER and related values still split PV on '-'. With no '-' in PV, the split yields one element, so ICU_MAJOR_VER is wrong and do_make_icudata's install of icudt${ICU_MAJOR_VER}l.dat fails when PACKAGECONFIG contains make-icudata."
+  },
+  {
+    "Commit": "b8c26b320abce65862632f0e832d93ba37c6dc41",
+    "Fixed-by": "0a3c4e3550cb52b4f42858ff6cc3356c96f5a6bf",
+    "subsystem": "barebox",
+    "problem_description": "The barebox upgrade removes 0001-lib-lz4-use-lz4-instead-of-lz4c.patch from SRC_URI in barebox.bb but does not delete the patch file from the recipe directory, leaving a dead patch in the layer."
+  },
+  {
+    "Commit": "9662bdabf3f638416963d1a8bab584680f4304a0",
+    "Fixed-by": "6c504d03c8bd8e2a9c8d0b946dbf28e94d13b5d6",
+    "subsystem": "piglit",
+    "problem_description": "The piglit upgrade adds wayland-related build dependencies (such as wayland-protocols and wayland-native) unconditionally to DEPENDS but not the target wayland package that provides wayland-client, so piglit fails to configure for X11 targets. The wayland dependencies belong behind a PACKAGECONFIG option."
+  },
+  {
+    "Commit": "0ffff2c1f80a9b79b133d787764bab164d9abd70",
+    "Fixed-by": "2a4e8f06bac1bff0a167f775f7babab94b32732a",
+    "subsystem": "rootfs",
+    "problem_description": "The new make_last() reordering in meta/lib/oe/rootfs.py has no effect: its return value is never assigned back to the post-process command variable. The reordered commands would also be joined without whitespace, so they would run together into one invalid command."
+  },
+  {
+    "Commit": "26a28ee7935091250a8c52f223a7a954d9e29d34",
+    "Fixed-by": "92352e209de96a5a6739d419299509ff2cfe67c2",
+    "subsystem": "alsa-utils",
+    "problem_description": "After switching alsa-utils to dynamic package splitting, the recipe still adds alsabat-test.sh explicitly to FILES of the alsabat package. With bat in PACKAGECONFIG, the dynamic split creates alsa-utils-alsabat-test, but the explicit FILES entry takes the script first, so that package is empty and never created."
+  }
+]
