@@ -34,9 +34,9 @@ use anyhow::Result;
 use async_trait::async_trait;
 use serde_json::Value;
 use std::process::Stdio;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::process::Command;
-use tracing::debug;
+use tracing::{debug, info};
 
 use super::cli_common::{
     CliIoError, IDLE_TIMEOUT, build_prompt, parse_inner_response, spawn_cli, write_prompt_and_wait,
@@ -221,6 +221,8 @@ impl ClaudeCliProvider {
         let prompt = build_prompt(&request);
 
         debug!("claude-cli prompt length: {} chars", prompt.len());
+        let prompt_chars = prompt.chars().count();
+        let started = Instant::now();
 
         let has_tools = request.tools.as_ref().is_some_and(|t| !t.is_empty());
         let working_directory = tempfile::tempdir().map_err(ClaudeCliError::WorkingDirectory)?;
@@ -260,11 +262,11 @@ impl ClaudeCliProvider {
         let outer = parse_cli_output(&raw)?;
         let result_text = extract_cli_result(&outer, has_tools)?;
 
-        // Parse usage from the outer JSON
-        let usage = parse_usage(&outer);
+        let usage = CliUsage::parse(&outer);
+        log_call_usage(&request, prompt_chars, usage, started.elapsed());
 
         // Parse the inner response — tool calls or content
-        parse_inner_response("claude-cli", &result_text, usage)
+        parse_inner_response("claude-cli", &result_text, usage.map(CliUsage::to_ai_usage))
     }
 }
 
@@ -316,29 +318,73 @@ fn context_window_for_model(model: &str) -> usize {
     }
 }
 
-fn parse_usage(outer: &Value) -> Option<AiUsage> {
-    let u = &outer["usage"];
-    if u.is_null() {
-        return None;
+/// The token counts the CLI reports for one call, as it reports them:
+/// input_tokens excludes the cached prefix, which is split into the part
+/// read from the cache and the part written to it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct CliUsage {
+    input: usize,
+    cache_read: usize,
+    cache_write: usize,
+    output: usize,
+}
+
+impl CliUsage {
+    fn parse(outer: &Value) -> Option<Self> {
+        let u = &outer["usage"];
+        if u.is_null() {
+            return None;
+        }
+        let count = |key: &str| u[key].as_u64().unwrap_or(0) as usize;
+        Some(Self {
+            input: count("input_tokens"),
+            cache_read: count("cache_read_input_tokens"),
+            cache_write: count("cache_creation_input_tokens"),
+            output: count("output_tokens"),
+        })
     }
-    let input = u["input_tokens"].as_u64().unwrap_or(0) as usize;
-    let output = u["output_tokens"].as_u64().unwrap_or(0) as usize;
-    let cache_read = u["cache_read_input_tokens"].as_u64().unwrap_or(0) as usize;
-    let cache_write = u["cache_creation_input_tokens"].as_u64().unwrap_or(0) as usize;
-    // input_tokens arrives without the cached prefix, so the two cache
-    // counts fold back in here.  cached_tokens is a breakdown of
-    // prompt_tokens, and a consumer subtracts it to get uncached input.
-    let total_input = input + cache_read + cache_write;
-    Some(AiUsage {
-        prompt_tokens: total_input,
-        completion_tokens: output,
-        total_tokens: total_input + output,
-        cached_tokens: if cache_read > 0 {
-            Some(cache_read)
-        } else {
-            None
-        },
-    })
+
+    fn to_ai_usage(self) -> AiUsage {
+        // input_tokens arrives without the cached prefix, so the two cache
+        // counts fold back in here.  cached_tokens is a breakdown of
+        // prompt_tokens, and a consumer subtracts it to get uncached input.
+        let total_input = self.input + self.cache_read + self.cache_write;
+        AiUsage {
+            prompt_tokens: total_input,
+            completion_tokens: self.output,
+            total_tokens: total_input + self.output,
+            cached_tokens: if self.cache_read > 0 {
+                Some(self.cache_read)
+            } else {
+                None
+            },
+        }
+    }
+}
+
+/// Logs one call's token counts with the cache read and write kept apart,
+/// which AiUsage folds together, so a review's cache misses can be traced
+/// to the calls that paid for them.
+fn log_call_usage(
+    request: &AiRequest,
+    prompt_chars: usize,
+    usage: Option<CliUsage>,
+    elapsed: Duration,
+) {
+    let prefix = crate::ai::get_log_prefix();
+    let msgs = request.messages.len();
+    let secs = elapsed.as_secs_f64();
+    match usage {
+        Some(u) => info!(
+            "{prefix}claude-cli call: {msgs} msgs, {prompt_chars} prompt chars, \
+             input={} cache_read={} cache_write={} output={}, {secs:.1}s",
+            u.input, u.cache_read, u.cache_write, u.output
+        ),
+        None => info!(
+            "{prefix}claude-cli call: {msgs} msgs, {prompt_chars} prompt chars, \
+             no usage reported, {secs:.1}s"
+        ),
+    }
 }
 
 #[cfg(all(test, unix))]
@@ -440,13 +486,36 @@ mod tests {
             }
         });
 
-        let usage = parse_usage(&outer).unwrap();
+        let usage = CliUsage::parse(&outer).unwrap().to_ai_usage();
 
         // Uncached input is prompt_tokens less the cached breakdown, so it
         // covers the fresh input and the prefix the model had to write.
         assert_eq!(usage.prompt_tokens, 21000);
         assert_eq!(usage.cached_tokens, Some(19500));
         assert_eq!(usage.total_tokens, 21020);
+    }
+
+    #[test]
+    fn test_cli_usage_keeps_cache_read_and_write_apart() {
+        let outer = serde_json::json!({
+            "usage": {
+                "input_tokens": 500,
+                "output_tokens": 20,
+                "cache_read_input_tokens": 19500,
+                "cache_creation_input_tokens": 1000,
+            }
+        });
+
+        assert_eq!(
+            CliUsage::parse(&outer),
+            Some(CliUsage {
+                input: 500,
+                cache_read: 19500,
+                cache_write: 1000,
+                output: 20,
+            })
+        );
+        assert_eq!(CliUsage::parse(&serde_json::json!({})), None);
     }
 
     #[test]
@@ -458,7 +527,7 @@ mod tests {
             }
         });
 
-        let usage = parse_usage(&outer).unwrap();
+        let usage = CliUsage::parse(&outer).unwrap().to_ai_usage();
 
         assert_eq!(usage.prompt_tokens, 500);
         assert_eq!(usage.cached_tokens, None);
