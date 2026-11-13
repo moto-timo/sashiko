@@ -66,6 +66,9 @@ use crate::workflows::qemu_patch_review::{
 use crate::workflows::sashiko_patch_review::{
     build_sashiko_patch_review_workflow_with_effort, sashiko_system_prompt,
 };
+use crate::workflows::yoctoproject_patch_review::{
+    build_yoctoproject_patch_review_workflow_with_effort, yoctoproject_system_prompt,
+};
 use crate::workflows::zephyr_patch_review::{
     build_zephyr_patch_review_workflow_with_effort, zephyr_system_prompt,
 };
@@ -523,9 +526,8 @@ impl Worker {
         if self.global_history.is_empty() {
             let sys_template = match self.project {
                 ProjectId::Linux => linux_system_prompt(true),
-                ProjectId::Sashiko | ProjectId::Yoctoproject | ProjectId::Bitbake => {
-                    sashiko_system_prompt(true)
-                }
+                ProjectId::Sashiko | ProjectId::Bitbake => sashiko_system_prompt(true),
+                ProjectId::Yoctoproject => yoctoproject_system_prompt(true),
                 ProjectId::Gcc => gcc_system_prompt(true),
                 ProjectId::Qemu => qemu_system_prompt(true),
                 ProjectId::Zephyr => zephyr_system_prompt(true),
@@ -547,13 +549,18 @@ impl Worker {
                 self.temperature,
                 self.effort,
             ),
-            ProjectId::Sashiko | ProjectId::Yoctoproject | ProjectId::Bitbake => {
+            ProjectId::Sashiko | ProjectId::Bitbake => {
                 build_sashiko_patch_review_workflow_with_effort(
                     self.max_interactions,
                     self.temperature,
                     self.effort,
                 )
             }
+            ProjectId::Yoctoproject => build_yoctoproject_patch_review_workflow_with_effort(
+                self.max_interactions,
+                self.temperature,
+                self.effort,
+            ),
             ProjectId::Gcc => build_gcc_patch_review_workflow_with_effort(
                 self.max_interactions,
                 self.temperature,

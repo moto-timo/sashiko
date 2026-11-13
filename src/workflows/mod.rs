@@ -29,15 +29,15 @@ pub mod related_preexisting;
 pub mod review_map;
 pub mod sashiko_patch_review;
 pub mod verification_shards;
+pub mod yoctoproject_patch_review;
 pub mod zephyr_patch_review;
 
 /// Returns the short UI label for a review stage belonging to `project`.
 pub fn stage_short_label(project: ProjectId, stage: &str) -> Option<&'static str> {
     match project {
         ProjectId::Linux => linux_patch_review::stage_short_label(stage),
-        ProjectId::Sashiko | ProjectId::Yoctoproject | ProjectId::Bitbake => {
-            sashiko_patch_review::stage_short_label(stage)
-        }
+        ProjectId::Sashiko | ProjectId::Bitbake => sashiko_patch_review::stage_short_label(stage),
+        ProjectId::Yoctoproject => yoctoproject_patch_review::stage_short_label(stage),
         ProjectId::Gcc => gcc_patch_review::stage_short_label(stage),
         ProjectId::Qemu => qemu_patch_review::stage_short_label(stage),
         ProjectId::Zephyr => zephyr_patch_review::stage_short_label(stage),
@@ -52,7 +52,11 @@ pub fn default_stage_count(project: ProjectId) -> usize {
             linux_patch_review::ANALYSIS_STAGES.len()
                 + linux_patch_review::CONSOLIDATION_STAGES.len()
         }
-        ProjectId::Sashiko | ProjectId::Yoctoproject | ProjectId::Bitbake => {
+        ProjectId::Yoctoproject => {
+            yoctoproject_patch_review::ANALYSIS_STAGES.len()
+                + yoctoproject_patch_review::CONSOLIDATION_STAGES.len()
+        }
+        ProjectId::Sashiko | ProjectId::Bitbake => {
             sashiko_patch_review::ANALYSIS_STAGES.len()
                 + sashiko_patch_review::CONSOLIDATION_STAGES.len()
         }
@@ -106,7 +110,22 @@ pub fn planned_stages_from(project: ProjectId, stage_names: &[&'static str]) -> 
             }
             planned
         }
-        ProjectId::Sashiko | ProjectId::Yoctoproject | ProjectId::Bitbake => {
+        ProjectId::Yoctoproject => {
+            let mut planned: Vec<String> = stage_names
+                .iter()
+                .filter(|n| yoctoproject_patch_review::analysis_stage_by_name(n).is_some())
+                .map(|n| n.to_string())
+                .collect();
+            if !planned.is_empty() {
+                planned.extend(
+                    yoctoproject_patch_review::CONSOLIDATION_STAGES
+                        .iter()
+                        .map(|s| s.name.to_string()),
+                );
+            }
+            planned
+        }
+        ProjectId::Sashiko | ProjectId::Bitbake => {
             let mut planned: Vec<String> = stage_names
                 .iter()
                 .filter(|n| {

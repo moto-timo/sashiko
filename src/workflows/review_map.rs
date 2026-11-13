@@ -28,6 +28,7 @@ use crate::workflows::guard::sanitize_prompt_relpath;
 use crate::workflows::linux_patch_review::{self, LinuxPatchReviewState};
 use crate::workflows::qemu_patch_review;
 use crate::workflows::sashiko_patch_review;
+use crate::workflows::yoctoproject_patch_review;
 use crate::workflows::zephyr_patch_review;
 
 fn push_unique(list: &mut Vec<String>, val: &str) {
@@ -277,9 +278,8 @@ fn static_stage_guides(project: ProjectId, stage_name: &str) -> Vec<String> {
     if stage_name == linux_patch_review::COMBINED_ANALYSIS_STAGE_NAME {
         let all_defs = match project {
             ProjectId::Linux => linux_patch_review::ANALYSIS_STAGES,
-            ProjectId::Sashiko | ProjectId::Yoctoproject | ProjectId::Bitbake => {
-                sashiko_patch_review::ANALYSIS_STAGES
-            }
+            ProjectId::Sashiko | ProjectId::Bitbake => sashiko_patch_review::ANALYSIS_STAGES,
+            ProjectId::Yoctoproject => yoctoproject_patch_review::ANALYSIS_STAGES,
             ProjectId::Gcc => gcc_patch_review::ANALYSIS_STAGES,
             ProjectId::Qemu => qemu_patch_review::ANALYSIS_STAGES,
             ProjectId::Zephyr => zephyr_patch_review::ANALYSIS_STAGES,
@@ -296,9 +296,10 @@ fn static_stage_guides(project: ProjectId, stage_name: &str) -> Vec<String> {
     }
     let analysis_def = match project {
         ProjectId::Linux => linux_patch_review::analysis_stage_by_name(stage_name),
-        ProjectId::Sashiko | ProjectId::Yoctoproject | ProjectId::Bitbake => {
+        ProjectId::Sashiko | ProjectId::Bitbake => {
             sashiko_patch_review::analysis_stage_by_name(stage_name)
         }
+        ProjectId::Yoctoproject => yoctoproject_patch_review::analysis_stage_by_name(stage_name),
         ProjectId::Gcc => gcc_patch_review::analysis_stage_by_name(stage_name),
         ProjectId::Qemu => qemu_patch_review::analysis_stage_by_name(stage_name),
         ProjectId::Zephyr => zephyr_patch_review::analysis_stage_by_name(stage_name),

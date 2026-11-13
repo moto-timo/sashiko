@@ -586,7 +586,7 @@ pub fn is_known_stage(name: &str) -> bool {
 // Validators and Helpers
 // ---------------------------------------------------------------------------
 
-fn validate_concerns_output(
+pub(crate) fn validate_concerns_output(
     output: &StageConcernsOutput,
     _state: &SashikoPatchReviewState,
 ) -> Result<(), String> {
@@ -659,14 +659,14 @@ fn validate_concerns_output(
     Ok(())
 }
 
-fn format_concerns_feedback(violation: &str) -> String {
+pub(crate) fn format_concerns_feedback(violation: &str) -> String {
     format!(
         "\n\nPrevious attempt was rejected: {}. You MUST return ONLY a JSON object containing 'concerns' (each with 'type', non-empty 'description' and 'reasoning' strings, a boolean 'preexisting', and a 'locations' array) and 'dismissed_concerns' (each with 'type', non-empty 'description' and 'reasoning' strings, and a 'locations' array) arrays. If there are no concerns and no dismissed concerns, return `{{\"concerns\": [], \"dismissed_concerns\": []}}`.",
         violation
     )
 }
 
-fn validate_github_summary_format(
+pub(crate) fn validate_github_summary_format(
     content: &str,
     state: &SashikoPatchReviewState,
 ) -> Result<(), String> {
@@ -776,14 +776,17 @@ pub fn format_sashiko_inline_findings(text: &str) -> String {
     out_lines.join("\n")
 }
 
-fn format_github_summary_feedback(violation: &str) -> String {
+pub(crate) fn format_github_summary_feedback(violation: &str) -> String {
     format!(
         "\n\nPrevious attempt was rejected: {}. Follow `github-summary-template.md`: return strictly plain text without backticks, markdown headings, or 'Summary:'/'Findings:' headers; wrap prose lines at 78 characters; separate individual findings with an empty line; and list every finding as a bullet starting with '- [<SEVERITY>]'.",
         violation
     )
 }
 
-fn validate_summary_format(content: &str, _state: &SashikoPatchReviewState) -> Result<(), String> {
+pub(crate) fn validate_summary_format(
+    content: &str,
+    _state: &SashikoPatchReviewState,
+) -> Result<(), String> {
     let trimmed = content.trim();
     if trimmed.is_empty() {
         return Err("The change summary cannot be empty.".to_string());
@@ -816,7 +819,7 @@ fn validate_summary_format(content: &str, _state: &SashikoPatchReviewState) -> R
     Ok(())
 }
 
-fn format_summary_feedback(violation: &str) -> String {
+pub(crate) fn format_summary_feedback(violation: &str) -> String {
     format!(
         "\n\nPrevious attempt was rejected: {}. Provide a plain-text summary (including Before: and After: examples if the change has a user-visible effect) without backticks, markdown headings, or 'Summary:' prefixes, wrapped at 78 characters.",
         violation
