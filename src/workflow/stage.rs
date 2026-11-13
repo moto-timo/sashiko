@@ -56,6 +56,12 @@ impl StageOutcome {
     }
 }
 
+/// Appends the stage's name to the run's log tag, so that each model call
+/// logged under it names the stage that made it.
+fn stage_context_tag(run_tag: Option<&str>, stage_name: &str) -> String {
+    format!("{}[{stage_name}] ", run_tag.unwrap_or_default())
+}
+
 /// Execution environment provided to stages during workflow runs.
 pub struct WorkflowEnv<'a> {
     pub provider: Arc<dyn AiProvider>,
@@ -501,7 +507,7 @@ impl<S: Send + Sync + 'static, T: DeserializeOwned + Send + 'static> ExecutableS
                 system_prompt,
                 user_prompt,
                 log_user_prompt,
-                context_tag: env.context_tag.clone(),
+                context_tag: Some(stage_context_tag(env.context_tag.as_deref(), stage_name)),
                 recitation_fallback_active: false,
                 last_tool_call: None,
             };
@@ -563,6 +569,15 @@ mod tests {
 
     #[derive(Default, Clone)]
     struct EmptyState;
+
+    #[test]
+    fn test_stage_context_tag_names_the_stage_after_the_run_tag() {
+        assert_eq!(
+            stage_context_tag(Some("[ps:0 p:1] "), "goal"),
+            "[ps:0 p:1] [goal] "
+        );
+        assert_eq!(stage_context_tag(None, "summary"), "[summary] ");
+    }
 
     /// Calls a tool on its first turn, then answers. Records every request so a
     /// test can check what the model was told about the tool call.
